@@ -1,0 +1,145 @@
+#!/bin/bash
+echo "-----------------------------------------------------"
+echo "Installing Java and Maven"
+echo "-----------------------------------------------------"
+sudo apt update && sudo apt install openjdk-11-jre-headless -y && sudo apt install maven -y
+echo "-----------------------------------------------------"
+echo "Starting Git Clone of the project"
+echo "-----------------------------------------------------"
+git clone https://github.com/bkrrajmali/helloworld
+echo "-----------------------------------------------------"
+echo "Git clone completed"
+echo "-----------------------------------------------------"
+echo "-----------------------------------------------------"
+echo "Starting Tomcat installation"
+echo "-----------------------------------------------------"
+wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.100/bin/apache-tomcat-8.5.100.tar.gz
+echo "-----------------------------------------------------"
+echo "Extracting tar file"
+echo "-----------------------------------------------------"
+tar -xvzf apache-tomcat-8.5.100.tar.gz
+echo "-----------------------------------------------------"
+echo "Renaming file"
+echo "-----------------------------------------------------"
+mv apache-tomcat-8.5.100/ tomcat
+echo "-----------------------------------------------------"
+echo "Installation complete"
+echo "-----------------------------------------------------"
+echo "-----------------------------------------------------"
+echo "Starting SonarQube Installation"
+echo "-----------------------------------------------------"
+wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.7.1.62043.zip
+echo "-----------------------------------------------------"
+echo "Extracting zip file"
+echo "-----------------------------------------------------"
+sudo apt install unzip && unzip sonarqube-9.7.1.62043.zip
+echo "-----------------------------------------------------"
+echo "Renaming file"
+echo "-----------------------------------------------------"
+mv sonarqube-9.7.1.62043 sonarqube
+echo "-----------------------------------------------------"
+echo "Installation complete"
+echo "-----------------------------------------------------"
+
+#Define the path of project where pom.xml is present
+PROJECT_DIR="/home/ubuntu/helloworld/webapp"
+# Define the directory where the built artifact (e.g., WAR file) will be created
+ARTIFACT_DIR="$PROJECT_DIR/target"
+# Define the name of the built artifact
+ARTIFACT_NAME="webapp.war"
+# Define the directory where Tomcat's webapps are located
+TOMCAT_WEBAPPS_DIR="/home/ubuntu/tomcat/webapps"
+# Define the directory where Tomcat's bin are located
+TOMCAT_BIN_DIR="/home/ubuntu/tomcat/bin"
+# Define the directory where SonarQube bin are located
+SONAR_BIN_DIR="/home/ubuntu/sonarqube/bin/linux-x86-64"
+
+echo "-----------------------------------------------------"
+echo "Moving to Project Directory"
+echo "-----------------------------------------------------"
+cd "$PROJECT_DIR" || exit
+echo "-----------------------------------------------------"
+echo "Running mvn clean package"
+echo "-----------------------------------------------------"
+mvn clean package
+echo "-----------------------------------------------------"
+echo "Checking for Maven Build successful"
+echo "-----------------------------------------------------"
+if [ $? -eq 0 ]; then
+        echo "-----------------------------------------------------"
+        echo "Build Successful"
+        echo "-----------------------------------------------------"
+        echo "-----------------------------------------------------"
+        echo "Removing existing artifact from tomcat webapps"
+        echo "-----------------------------------------------------"
+        cd "$TOMCAT_WEBAPPS_DIR" || exit
+        rm -rf webapp*
+        echo "-----------------------------------------------------"
+        echo "Copying the artifact to webapps in Tomcat"
+        echo "-----------------------------------------------------"
+        sudo cp "$ARTIFACT_DIR/$ARTIFACT_NAME" "$TOMCAT_WEBAPPS_DIR"
+        echo "-----------------------------------------------------"
+        echo "Build Successful"
+        echo "-----------------------------------------------------"
+else
+        echo "-----------------------------------------------------"
+        echo "Build Failed. Please check your code"
+        echo "-----------------------------------------------------"
+fi
+echo "-----------------------------------------------------"
+echo "Starting Tomcat"
+echo "-----------------------------------------------------"
+cd "$TOMCAT_BIN_DIR" || exit
+sh startup.sh
+if [ $? -eq 0 ]; then
+        echo "-----------------------------------------------------"
+        echo "Tomcat started"
+        echo "-----------------------------------------------------"
+else
+        echo "-----------------------------------------------------"
+        echo "Tomcat failed to start"
+        echo "-----------------------------------------------------"
+fi
+echo "-----------------------------------------------------"
+echo "Starting SonarQube"
+echo "-----------------------------------------------------"
+cd "$SONAR_BIN_DIR" || exit
+sh sonar.sh start
+if [ $? -eq 0 ]; then
+        echo "-----------------------------------------------------"
+        echo "SonarQube started"
+        echo "-----------------------------------------------------"
+else
+        echo "-----------------------------------------------------"
+        echo "SonarQube failed to start"
+        echo "-----------------------------------------------------"
+fi
+echo "-----------------------------------------------------"
+echo "Enter Project Key"
+echo "-----------------------------------------------------"
+read prj_key
+echo "-----------------------------------------------------"
+echo "Enter Sonarqube host address"
+echo "-----------------------------------------------------"
+read host_addr
+echo "-----------------------------------------------------"
+echo "Enter the token generated by you"
+echo "-----------------------------------------------------"
+read token
+echo "-----------------------------------------------------"
+echo "Scanning Project using SonarQube"
+echo "-----------------------------------------------------"
+cd "$PROJECT_DIR" || exit
+mvn clean verify sonar:sonar \
+  -Dsonar.projectKey="$prj_key" \
+  -Dsonar.host.url="$host_addr" \
+  -Dsonar.login="$token"
+if [ $? -eq 0 ]; then
+        echo "-----------------------------------------------------"
+        echo "SonarQube scanned successfully"
+        echo "-----------------------------------------------------"
+else
+        echo "-----------------------------------------------------"
+        echo "SonarQube failed to scan"
+        echo "-----------------------------------------------------"
+fi
