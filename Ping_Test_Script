@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo "..............................................."
+echo "PINT TEST"
+echo "..............................................."
+
+#ENTER THE WEBSITE OR HOST
+
+echo "..............................................."
+echo "ENTER THE WEBSITE"
+echo "..............................................."
+read -p "Enter hostname or IPAddress to ping: " host
+
+#PING THE HOST 10 TIMES AND PRINT THE RESULT 
+ping -C 10 $host
+
+#CHECK AND EXIT WITH STATUS OF THE PING COMMAND
+if [ $? -eq 0 ]; then
+    echo "Ping successful! $host is reachable."
+else
+    echo "Ping failed! $host is unreachable."
+fi
